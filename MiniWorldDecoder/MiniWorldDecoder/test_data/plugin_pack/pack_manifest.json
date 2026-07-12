@@ -1,0 +1,16 @@
+{
+    "name":"Test Plugin Pack",
+    "description":"A test plugin pack for MiniWorld",
+    "author":"Tester",
+    "pack_version":"1.0",
+    "api_version":"1.0.0",
+    "mod_type":0,
+    "restart_required":false,
+    "open_edit":true,
+    "standalone":false,
+    "uuid":"a0fb1329-cc52-447a-971a-8ab731340506",
+    "authoruin":1000001,
+    "author_head_iconindex":0,
+    "en_name":"Test Plugin Pack",
+    "vie_name":"Gói Plugin Kiểm Tra"
+}

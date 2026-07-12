@@ -1,0 +1,9 @@
+=== Lua Script Report: test.lua ===
+Lines: 3
+Size: 60 chars
+Obfuscated: False
+
+(Không tìm thấy API call MiniWorld)
+
+=== Code Structure ===
+Functions: 0

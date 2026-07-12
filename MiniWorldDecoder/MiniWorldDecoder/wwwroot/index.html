@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniWorld Lua Decoder</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+.container { max-width: 920px; margin: 0 auto; padding: 24px 20px; }
+h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+.card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #334155; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-success { background: #22c55e; color: #fff; }
+.btn-success:hover { background: #16a34a; }
+.btn-ghost { background: #334155; color: #e2e8f0; }
+.btn-ghost:hover { background: #475569; }
+.drop-zone { border: 2px dashed #475569; border-radius: 10px; padding: 40px 20px; text-align: center; cursor: pointer; }
+.drop-zone:hover, .drop-zone.dragover { border-color: #3b82f6; background: #1e293b80; }
+.drop-zone-icon { font-size: 40px; margin-bottom: 12px; }
+.drop-zone-text { color: #94a3b8; font-size: 14px; }
+.drop-zone-text strong { color: #60a5fa; }
+.status { padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; display: none; }
+.status.info { background: #1e3a5f; color: #93c5fd; display: block; }
+.status.success { background: #14532d; color: #86efac; display: block; }
+.status.error { background: #450a0a; color: #fca5a5; display: block; }
+.key-display { padding: 10px 14px; background: #0f172a; border-radius: 8px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; color: #c084fc; word-break: break-all; }
+.summary { display: flex; gap: 16px; margin: 12px 0; }
+.summary-item { background: #0f172a; border-radius: 8px; padding: 12px 16px; flex: 1; text-align: center; }
+.summary-item .num { font-size: 24px; font-weight: 700; }
+.summary-item .label { font-size: 12px; color: #64748b; }
+.progress-bar { height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin: 8px 0; display: none; }
+.progress-bar .fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #a78bfa); width: 0; }
+.file-list { max-height: 500px; overflow-y: auto; }
+.file-item { border-bottom: 1px solid #334155; }
+.file-item:last-child { border-bottom: none; }
+.file-header { display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer; user-select: none; }
+.file-header:hover { background: #1a2744; border-radius: 6px; }
+.file-header .arrow { color: #64748b; font-size: 11px; min-width: 12px; display: inline-block; }
+.file-header.expanded .arrow { transform: rotate(90deg); }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.badge-ok { background: #166534; color: #86efac; }
+.badge-skip { background: #374151; color: #94a3b8; }
+.badge-fail { background: #7f1d1d; color: #fca5a5; }
+.file-header .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.file-header .meta { color: #64748b; font-size: 12px; }
+.file-preview { display: none; padding: 4px 10px 12px 30px; }
+.file-preview.open { display: block; }
+.file-preview pre { background: #0f172a; border-radius: 6px; padding: 12px 14px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; line-height: 1.5; overflow-x: auto; color: #cbd5e1; max-height: 240px; overflow-y: auto; margin: 0; }
+.download-area { margin-top: 12px; text-align: center; }
+.hidden { display: none !important; }
+#fileInput { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>MiniWorld Lua Decoder</h1>
+  <p class="subtitle">Giai ma file Lua ma hoa XXTEA tu Mini World</p>
+
+  <div class="card">
+    <div style="margin-bottom:8px;font-size:13px;color:#94a3b8;">XXTEA Key: <span style="color:#64748b;font-size:12px;">&#x1f512; da duoc bao ve</span></div>
+    <div class="key-display" style="opacity:0.3;user-select:none;">b48e6ef4****1d3eee****4175****9cf4</div>
+  </div>
+
+  <div class="card">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon">&#x1f4c2;</div>
+      <div class="drop-zone-text">
+        <strong>Keo tha file hoac folder vao day</strong><br>
+        Hoac bam nut ben duoi
+      </div>
+    </div>
+    <input type="file" id="fileInput">
+    <div style="margin-top:12px;" class="row">
+      <button class="btn btn-primary" id="btnFolder">Chon Folder</button>
+      <button class="btn btn-primary" id="btnFiles">Chon File(s)</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+  <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+
+  <div class="card hidden" id="resultsCard">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <strong>Ket qua</strong>
+      <span id="fileCount" style="color:#94a3b8;font-size:13px;"></span>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="file-list" id="fileList"></div>
+    <div class="download-area hidden" id="downloadArea">
+      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tai xuong tat ca (ZIP)</button>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:20px 0;color:#475569;font-size:12px;">
+    MiniWorld Lua Decoder
+  </div>
+</div>
+
+<script>
+// ===================== XXTEA =====================
+// Key: hex -> ASCII bytes -> XOR mask -> stored
+(function() {
+  var masked = new Uint8Array([0xb7,0x31,0xa0,0xd9,0x55,0xef,0xb9,0x66,0x8b,0x5a,0xb9,0xb4,0x6a,0x3a,0xd0,0x4b,0xe5,0x65,0x7d,0x58,0x13,0x50,0x99,0x91,0x3c,0x8f,0x9a,0x3f,0xed,0x62,0x65,0x67]);
+  var mask  = new Uint8Array([0xd5,0x05,0x98,0xbc,0x63,0x8a,0xdf,0x52,0xbf,0x3f,0xdd,0x85,0x59,0x5f,0xb5,0x2e,0xd3,0x55,0x4b,0x69,0x27,0x61,0xae,0xa4,0x0c,0xea,0xad,0x0d,0xd4,0x01,0x03,0x53]);
+  var hexBytes = new Uint8Array(32);
+  for (var i = 0; i < 32; i++) hexBytes[i] = masked[i] ^ mask[i];
+  var hexStr = new TextDecoder().decode(hexBytes);
+  var key = new Uint8Array(16);
+  for (var i = 0; i < 16; i++) key[i] = parseInt(hexStr.substr(i*2, 2), 16);
+  window.XXTEA_KEY = key;
+})();
+
+function xxteaDecrypt(data) {
+  if (!data || data.length < 8 || !XXTEA_KEY) return null;
+  var n = Math.floor(data.length / 4);
+  if (n < 2) return null;
+  var v = new Uint32Array(n);
+  for (var i = 0; i < n; i++) v[i] = (data[i*4] | data[i*4+1]<<8 | data[i*4+2]<<16 | data[i*4+3]<<24) >>> 0;
+  var k = new Uint32Array(4);
+  for (var i = 0; i < 4; i++) k[i] = (XXTEA_KEY[i*4] | XXTEA_KEY[i*4+1]<<8 | XXTEA_KEY[i*4+2]<<16 | XXTEA_KEY[i*4+3]<<24) >>> 0;
+  var y = v[0], z = v[n-1], delta = 0x9E3779B9;
+  var rounds = 6 + Math.floor(52 / n);
+  var sum = (rounds * delta) >>> 0;
+  for (var r = 0; r < rounds; r++) {
+    var e = (sum >>> 2) & 3;
+    for (var p = n - 1; p > 0; p--) { z = v[p-1]; v[p] = (v[p] - (((z>>>5 ^ y<<2) + (y>>>3 ^ z<<4)) ^ ((sum ^ y) + (k[(p & 3) ^ e] ^ z)))) >>> 0; y = v[p]; }
+    z = v[n-1];
+    v[0] = (v[0] - (((z>>>5 ^ y<<2) + (y>>>3 ^ z<<4)) ^ ((sum ^ y) + (k[(0 & 3) ^ e] ^ z)))) >>> 0;
+    y = v[0];
+    sum = (sum - delta) >>> 0;
+  }
+  var b0 = v[0] & 0xFF, b1 = (v[0]>>>8)&0xFF, b2 = (v[0]>>>16)&0xFF, b3 = (v[0]>>>24)&0xFF;
+  var len = (b0<<24) | (b1<<16) | (b2<<8) | b3;
+  if (len <= 0 || len + 4 > n * 4) return null;
+  var out = new Uint8Array(len);
+  for (var i = 0; i < len; i++) {
+    var pos = 4 + i, w = Math.floor(pos/4), b = pos%4;
+    out[i] = (v[w] >>> (b*8)) & 0xFF;
+  }
+  return out;
+}
+
+function isEncrypted(buf) {
+  return buf[0]===0x61 && buf[1]===0x30 && buf[2]===0x38 && buf[3]===0x31 && buf[4]===0x37 && buf[5]===0x69;
+}
+
+function isBase64(s) {
+  return /^[A-Za-z0-9+\/=]{20,}$/.test(s);
+}
+
+function decryptBytes(buf) {
+  try {
+    var raw;
+    var text = new TextDecoder().decode(buf);
+
+    // Format 1: a0817i + base64
+    if (isEncrypted(buf)) {
+      var b64 = text.slice(6).trim();
+      var bin = atob(b64);
+      raw = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
+    }
+    // Format 2: pure base64
+    else {
+      var trimmed = text.trim();
+      if (!isBase64(trimmed)) return null;
+      var bin = atob(trimmed);
+      raw = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
+    }
+
+    var dec = xxteaDecrypt(raw);
+    if (!dec) return null;
+    var result = new TextDecoder().decode(dec);
+    // Verify it looks like Lua
+    if (result.length > 10 && (result.indexOf('--') === 0 || result.indexOf('local') >= 0 || result.indexOf('function') >= 0)) {
+      return result;
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+// ===================== UI =====================
+var allFiles = [];
+var decodedData = [];
+
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+var btnFolder = document.getElementById('btnFolder');
+var btnFiles = document.getElementById('btnFiles');
+var status = document.getElementById('status');
+var resultsCard = document.getElementById('resultsCard');
+var fileList = document.getElementById('fileList');
+var summary = document.getElementById('summary');
+var fileCount = document.getElementById('fileCount');
+var progressBar = document.getElementById('progressBar');
+var progressFill = document.getElementById('progressFill');
+var downloadArea = document.getElementById('downloadArea');
+var btnDownload = document.getElementById('btnDownload');
+
+// Folder picker
+btnFolder.addEventListener('click', function() {
+  fileInput.accept = '';
+  fileInput.multiple = false;
+  try { fileInput.webkitdirectory = true; } catch(e) {}
+  fileInput.value = '';
+  fileInput.click();
+});
+
+// File picker
+btnFiles.addEventListener('click', function() {
+  try { fileInput.webkitdirectory = false; } catch(e) {}
+  fileInput.accept = '.lua,.wsc,.txt';
+  fileInput.multiple = true;
+  fileInput.value = '';
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', function() {
+  if (this.files && this.files.length) processFiles(this.files);
+  this.value = '';
+});
+
+dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  for (var i = 0; i < e.dataTransfer.files.length; i++) {
+    var f = e.dataTransfer.files[i];
+    if (f.name && f.name.match(/\.(lua|wsc)$/i)) {
+      allFiles.push(f);
+    }
+  }
+  if (allFiles.length) processFiles(allFiles);
+});
+
+function processFiles(files) {
+  allFiles = [];
+  decodedData = [];
+  resultsCard.classList.add('hidden');
+  downloadArea.classList.add('hidden');
+
+  var luaFiles = [];
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    if (f.name.match(/\.(lua|wsc)$/i)) luaFiles.push(f);
+  }
+
+  if (!luaFiles.length) {
+    setStatus('Khong tim thay file .lua nao. Vui long chon file co duoi .lua', 'error');
+    return;
+  }
+
+  setStatus('Dang xu ly ' + luaFiles.length + ' file...', 'info');
+  progressBar.style.display = 'block';
+  progressFill.style.width = '0%';
+
+  var results = [];
+  var ok = 0, skip = 0, fail = 0;
+  var idx = 0;
+
+  function processNext() {
+    if (idx >= luaFiles.length) {
+      progressBar.style.display = 'none';
+      renderResults(results, ok, skip, fail);
+      return;
+    }
+
+    var file = luaFiles[idx];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var buf = new Uint8Array(e.target.result);
+      var item = { name: file.webkitRelativePath || file.name, size: file.size, status: 'skip', text: '', decSize: 0 };
+
+      var bom = (buf[0]===0xEF && buf[1]===0xBB && buf[2]===0xBF);
+      var checkBuf = bom ? buf.slice(3) : buf;
+      item.rawStart = Array.prototype.slice.call(checkBuf, 0, Math.min(24, checkBuf.length))
+        .map(function(b){ return b.toString(16).padStart(2,'0') }).join(' ');
+
+      var dec = decryptBytes(checkBuf);
+      if (dec) {
+        item.status = 'ok';
+        item.text = dec;
+        item.decSize = dec.length;
+        var lines = dec.split('\n');
+        item.log = lines.slice(0, 10).join('\n');
+        if (lines.length > 10) item.log += '\n... (' + (lines.length - 10) + ' dong nua)';
+        ok++;
+        var outName = file.name.replace(/\.(lua|wsc)$/i, '.lua');
+        decodedData.push({ name: outName, data: dec });
+      } else {
+        // Check if it's base64 but wrong key
+        var textSample = new TextDecoder().decode(checkBuf).trim();
+        if (/^[A-Za-z0-9+\/=]{30,}$/.test(textSample)) {
+          item.status = 'fail';
+          fail++;
+        } else {
+          skip++;
+        }
+      }
+      results.push(item);
+      idx++;
+      progressFill.style.width = Math.round(idx / luaFiles.length * 100) + '%';
+      setTimeout(processNext, 10);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  processNext();
+}
+
+function renderResults(items, ok, skip, fail) {
+  resultsCard.classList.remove('hidden');
+  fileCount.textContent = items.length + ' file';
+
+  summary.innerHTML =
+    '<div class="summary-item"><div class="num" style="color:#86efac;">' + ok + '</div><div class="label">Giai ma</div></div>' +
+    '<div class="summary-item"><div class="num" style="color:#94a3b8;">' + skip + '</div><div class="label">Bo qua</div></div>' +
+    '<div class="summary-item"><div class="num" style="color:#fca5a5;">' + fail + '</div><div class="label">Loi</div></div>';
+
+  fileList.innerHTML = '';
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var badgeClass = item.status === 'ok' ? 'badge-ok' : item.status === 'skip' ? 'badge-skip' : 'badge-fail';
+    var badgeText = item.status === 'ok' ? 'OK' : item.status === 'skip' ? 'Bo qua' : 'Loi';
+    var meta = item.status === 'ok' ? item.decSize + 'B' : (item.size/1024).toFixed(1) + 'KB';
+
+    var div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML =
+      '<div class="file-header" onclick="toggleLog(this)">' +
+        '<span class="arrow">&#x25b6;</span>' +
+        '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+        '<span class="name">' + item.name + '</span>' +
+        '<span class="meta">' + meta + '</span>' +
+      '</div>' +
+      '<div class="file-preview">' +
+        (item.status === 'ok'
+          ? '<div style="color:#94a3b8;font-size:11px;padding:2px 0 4px;word-break:break-all;border-bottom:1px solid #334155;margin-bottom:6px;">' + escapeHtml(item.name) + '</div><pre>' + escapeHtml(item.log) + '</pre>'
+          : '<pre style="color:#64748b;font-style:italic;">' +
+            (item.status === 'skip' ? 'Khong phai file ma hoa<br><code>' + item.rawStart + '</code>' : 'Giai ma that bai (co the sai key)<br><code>' + item.rawStart + '</code>') + '</pre>') +
+      '</div>';
+    fileList.appendChild(div);
+  }
+
+  if (ok > 0) {
+    downloadArea.classList.remove('hidden');
+    setStatus('Hoan thanh: ' + ok + ' file giai ma thanh cong!', 'success');
+  } else if (fail > 0) {
+    setStatus('Khong the giai ma ' + fail + ' file. Sai key hoac format?', 'error');
+  } else {
+    setStatus('Khong co file nao can giai ma.', 'info');
+  }
+}
+
+function toggleLog(el) {
+  el.classList.toggle('expanded');
+  var preview = el.nextElementSibling;
+  if (preview) preview.classList.toggle('open');
+}
+
+function setStatus(msg, type) {
+  status.className = 'status ' + type;
+  status.textContent = msg;
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Download
+btnDownload.addEventListener('click', function() {
+  if (!decodedData.length) return;
+  var zip = new JSZip();
+  for (var i = 0; i < decodedData.length; i++) {
+    zip.file(decodedData[i].name, decodedData[i].data);
+  }
+  zip.generateAsync({ type: 'blob' }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'miniworld_decoded_' + new Date().toISOString().slice(0,10) + '.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus('Da tai xuong: ' + decodedData.length + ' file', 'success');
+  });
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</body>
+</html>

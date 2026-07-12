@@ -1,0 +1,17 @@
+bin/
+obj/
+publish/
+*.exe
+*.pdb
+*.user
+*.suo
+*.vs/
+.vs/
+.DS_Store
+Thumbs.db
+key.txt
+pkg_extracted/
+decrypted/
+test_output/
+*.bin
+*.wsc

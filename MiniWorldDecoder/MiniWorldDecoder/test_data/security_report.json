@@ -1,0 +1,58 @@
+{
+  "AnalysisDate": "2026-07-10T05:59:06.5766945Z",
+  "TotalIssues": 5,
+  "Summary": {
+    "Critical": 3,
+    "High": 2,
+    "Medium": 0,
+    "Low": 0,
+    "Info": 0
+  },
+  "Issues": [
+    {
+      "File": "test_data\\malicious\\malicious_sample.lua",
+      "Line": 4,
+      "Severity": 4,
+      "Category": "DataExfiltration",
+      "Description": "Possible data exfiltration - sensitive data being output",
+      "Code": "print(\u0022Account Token: \u0022 .. token)",
+      "Recommendation": "Audit data output/logging for sensitive information"
+    },
+    {
+      "File": "test_data\\malicious\\malicious_sample.lua",
+      "Line": 5,
+      "Severity": 4,
+      "Category": "DataExfiltration",
+      "Description": "Possible data exfiltration - sensitive data being output",
+      "Code": "Chat:sendSystemMsg(\u0022Token: \u0022 .. token)",
+      "Recommendation": "Audit data output/logging for sensitive information"
+    },
+    {
+      "File": "test_data\\malicious\\malicious_sample.lua",
+      "Line": 10,
+      "Severity": 4,
+      "Category": "CodeExecution",
+      "Description": "Dynamic code execution detected - potential code injection risk",
+      "Code": "loadstring(code)()",
+      "Recommendation": "Remove dynamic code execution (loadstring/load)"
+    },
+    {
+      "File": "test_data\\malicious\\malicious_sample.lua",
+      "Line": 14,
+      "Severity": 3,
+      "Category": "FileSystemAccess",
+      "Description": "File system access detected - may read/write files outside sandbox",
+      "Code": "local file = io.open(\u0022sensitive_data.txt\u0022, \u0022r\u0022)",
+      "Recommendation": "Restrict file I/O operations in plugin scripts"
+    },
+    {
+      "File": "test_data\\malicious\\malicious_sample.lua",
+      "Line": 22,
+      "Severity": 3,
+      "Category": "FileSystemAccess",
+      "Description": "File system access detected - may read/write files outside sandbox",
+      "Code": "os.execute(\u0022rm -rf /important\u0022)",
+      "Recommendation": "Restrict file I/O operations in plugin scripts"
+    }
+  ]
+}
