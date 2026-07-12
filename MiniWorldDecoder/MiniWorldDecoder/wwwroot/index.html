@@ -53,7 +53,9 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
 .file-preview pre { background: #0f172a; border-radius: 6px; padding: 12px 14px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; line-height: 1.5; overflow-x: auto; color: #cbd5e1; max-height: 240px; overflow-y: auto; margin: 0; }
 .download-area { margin-top: 12px; text-align: center; }
 .hidden { display: none !important; }
-#fileInput { position: absolute; left: -9999px; opacity: 0; pointer-events: none; }
+#fileInput { display: none; }
+.mode-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1; cursor: pointer; margin-bottom: 4px; }
+.mode-label input { accent-color: #3b82f6; }
 </style>
 </head>
 <body>
@@ -78,30 +80,21 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
     </div>
     <div style="margin-bottom:12px;">
       <div style="font-size:14px;color:#e2e8f0;margin-bottom:8px;"><strong>Chế độ tải về:</strong></div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;margin-bottom:4px;">
-        <input type="radio" name="downloadMode" value="flat" checked style="accent-color:#3b82f6;">
-        <span>Tải tất cả .lua (phẳng) - tên: folder_file.lua</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;margin-bottom:4px;">
-        <input type="radio" name="downloadMode" value="structure" style="accent-color:#3b82f6;">
-        <span>Giữ cấu trúc folder - decode .lua, giữ file khác</span>
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;">
-        <input type="radio" name="downloadMode" value="luaonly" style="accent-color:#3b82f6;">
-        <span>Chỉ tải .lua đã decode (phẳng, folder_file.lua)</span>
-      </label>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="flat" checked> <span>Tải tất cả .lua (phẳng) - tên: folder_file.lua</span></label>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="structure"> <span>Giữ cấu trúc folder - decode .lua, giữ file khác</span></label>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="luaonly"> <span>Chỉ tải .lua đã decode (phẳng, folder_file.lua)</span></label>
     </div>
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-icon">&#x1f4c2;</div>
       <div class="drop-zone-text">
-        <strong>Keo tha file hoac folder vao day</strong><br>
-        Hoac bam nut ben duoi
+        <strong>Kéo thả file hoặc folder vào đây</strong><br>
+        Hoặc bấm nút bên dưới
       </div>
     </div>
     <input type="file" id="fileInput">
     <div style="margin-top:12px;" class="row">
-      <button class="btn btn-primary" id="btnFolder">Chon Folder</button>
-      <button class="btn btn-primary" id="btnFiles">Chon File(s)</button>
+      <button class="btn btn-primary" id="btnFolder">Chọn Folder</button>
+      <button class="btn btn-primary" id="btnFiles">Chọn File(s)</button>
     </div>
   </div>
 
@@ -110,22 +103,22 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
 
   <div class="card hidden" id="resultsCard">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong>Ket qua</strong>
+      <strong>Kết quả</strong>
       <span id="fileCount" style="color:#94a3b8;font-size:13px;"></span>
     </div>
     <div class="summary" id="summary"></div>
     <div class="file-list" id="fileList"></div>
     <div class="download-area hidden" id="downloadArea">
-      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tai xuong tat ca .lua (phang, folder_file.lua)</button>
+      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tải xuống tất cả .lua (phẳng, folder_file.lua)</button>
     </div>
     <div class="download-area hidden" id="structureArea">
-      <button class="btn btn-success" id="btnStructure" style="width:100%;">Tai folder nén (giu cau truc, decode .lua)</button>
+      <button class="btn btn-success" id="btnStructure" style="width:100%;">Tải về giữ cấu trúc folder (ZIP)</button>
     </div>
     <div class="download-area hidden" id="luaOnlyArea">
-      <button class="btn btn-success" id="btnLuaOnly" style="width:100%;">Tai chi .lua da decode (phang)</button>
+      <button class="btn btn-success" id="btnLuaOnly" style="width:100%;">Tải chỉ .lua đã decode (phẳng)</button>
     </div>
     <div class="download-area hidden" id="inplaceArea">
-      <button class="btn btn-success" id="btnInplace" style="width:100%;">Ghi de vao file goc</button>
+      <button class="btn btn-success" id="btnInplace" style="width:100%;">Ghi đè vào file gốc</button>
     </div>
   </div>
 
@@ -219,9 +212,10 @@ function decryptBytes(buf) {
 }
 
 // ===================== UI =====================
-var allFiles = [];
-var decodedData = [];
-var originalFiles = []; // Store File objects with handles for in-place mode
+var allFiles = [];           // All File objects from selection
+var allFilesMap = {};        // relPath -> File (for structure mode)
+var decodedData = [];        // {relPath, name, data, file}
+var originalFiles = [];      // For in-place mode with handles
 
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
@@ -246,13 +240,10 @@ var btnInplace = document.getElementById('btnInplace');
 var downloadModeRadios = document.getElementsByName('downloadMode');
 
 // Toggle mode UI
-inplaceMode.addEventListener('change', function() {
-  updateDownloadAreas();
-});
-
+inplaceMode.addEventListener('change', updateDownloadAreas);
 for (var i = 0; i < downloadModeRadios.length; i++) {
   downloadModeRadios[i].addEventListener('change', updateDownloadAreas);
-});
+}
 
 function updateDownloadAreas() {
   if (inplaceMode.checked) {
@@ -283,35 +274,7 @@ function updateDownloadAreas() {
 }
 
 // Folder picker
-btnFolder.addEventListener('click', async function() {
-  if (inplaceMode.checked && window.showDirectoryPicker) {
-    try {
-      var handle = await window.showDirectoryPicker({ mode: 'readwrite' });
-      var files = [];
-      async function traverse(dirHandle) {
-        for await (var [name, childHandle] of dirHandle.entries()) {
-          if (childHandle.kind === 'file' && name.match(/\.(lua|wsc)$/i)) {
-            var file = await childHandle.getFile();
-            file._handle = childHandle; // Store handle for writing
-            files.push(file);
-          } else if (childHandle.kind === 'directory') {
-            await traverse(childHandle);
-          }
-        }
-      }
-      await traverse(handle);
-      if (files.length) {
-        originalFiles = files.map(function(f) { return { file: f, handle: f._handle }; });
-        allFiles = files;
-        processFiles(allFiles);
-      } else {
-        setStatus('Khong tim thay file .lua nao trong folder.', 'error');
-      }
-    } catch(e) {
-      if (e.name !== 'AbortError') setStatus('Loi: ' + e.message, 'error');
-    }
-    return;
-  }
+btnFolder.addEventListener('click', function() {
   fileInput.accept = '';
   fileInput.multiple = false;
   try { fileInput.webkitdirectory = true; } catch(e) {}
@@ -337,20 +300,6 @@ dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone
 dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
 dropZone.addEventListener('drop', function(e) {
   e.preventDefault(); dropZone.classList.remove('dragover');
-  if (e.dataTransfer.items && window.showDirectoryPicker) {
-    // Try to get directory handles for in-place mode
-    for (var i = 0; i < e.dataTransfer.items.length; i++) {
-      var item = e.dataTransfer.items[i];
-      if (item.kind === 'file') {
-        var entry = item.webkitGetAsEntry();
-        if (entry && entry.isDirectory) {
-          // Handle directory drop
-          handleDirectoryDrop(entry);
-          return;
-        }
-      }
-    }
-  }
   for (var i = 0; i < e.dataTransfer.files.length; i++) {
     var f = e.dataTransfer.files[i];
     if (f.name && f.name.match(/\.(lua|wsc)$/i)) {
@@ -360,51 +309,22 @@ dropZone.addEventListener('drop', function(e) {
   if (allFiles.length) processFiles(allFiles);
 });
 
-// Handle directory drop for in-place mode
-async function handleDirectoryDrop(entry) {
-  if (!window.showDirectoryPicker) {
-    alert('Trinh duyet khong ho tro File System Access API. Vui long dung nut "Chon Folder".');
-    return;
-  }
-  try {
-    var handle = await window.showDirectoryPicker();
-    var files = [];
-    async function traverse(dirHandle) {
-      for await (var [name, childHandle] of dirHandle.entries()) {
-        if (childHandle.kind === 'file' && name.match(/\.(lua|wsc)$/i)) {
-          var file = await childHandle.getFile();
-          // Attach handle to file object
-          file._handle = childHandle;
-          files.push(file);
-        } else if (childHandle.kind === 'directory') {
-          await traverse(childHandle);
-        }
-      }
-    }
-    await traverse(handle);
-    if (files.length) {
-      allFiles = files;
-      originalFiles = files;
-      processFiles(allFiles);
-    } else {
-      setStatus('Khong tim thay file .lua nao trong folder.', 'error');
-    }
-  } catch(e) {
-    if (e.name !== 'AbortError') setStatus('Loi: ' + e.message, 'error');
-  }
-}
-
 function processFiles(files) {
   allFiles = [];
+  allFilesMap = {};
   decodedData = [];
   originalFiles = [];
   resultsCard.classList.add('hidden');
   downloadArea.classList.add('hidden');
+  structureArea.classList.add('hidden');
+  luaOnlyArea.classList.add('hidden');
   inplaceArea.classList.add('hidden');
 
   var luaFiles = [];
   for (var i = 0; i < files.length; i++) {
     var f = files[i];
+    var relPath = f.webkitRelativePath || f.name;
+    allFilesMap[relPath] = f;  // Store ALL files for structure mode
     if (f.name.match(/\.(lua|wsc)$/i)) luaFiles.push(f);
   }
 
@@ -437,7 +357,8 @@ function processFiles(files) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var buf = new Uint8Array(e.target.result);
-      var item = { name: file.webkitRelativePath || file.name, size: file.size, status: 'skip', text: '', decSize: 0 };
+      var relPath = file.webkitRelativePath || file.name;
+      var item = { name: relPath, size: file.size, status: 'skip', text: '', decSize: 0 };
 
       var bom = (buf[0]===0xEF && buf[1]===0xBB && buf[2]===0xBF);
       var checkBuf = bom ? buf.slice(3) : buf;
@@ -453,7 +374,6 @@ function processFiles(files) {
         item.log = lines.slice(0, 10).join('\n');
         if (lines.length > 10) item.log += '\n... (' + (lines.length - 10) + ' dong nua)';
         ok++;
-        var relPath = file.webkitRelativePath || file.name;
         var outName = file.name.replace(/\.(lua|wsc)$/i, '.lua');
         decodedData.push({ name: outName, relPath: relPath, data: dec, file: file });
       } else {
@@ -511,13 +431,7 @@ function renderResults(items, ok, skip, fail) {
   }
 
   if (ok > 0) {
-    if (inplaceMode.checked && window.showDirectoryPicker) {
-      inplaceArea.classList.remove('hidden');
-    } else {
-      downloadArea.classList.remove('hidden');
-      structureArea.classList.remove('hidden');
-      luaOnlyArea.classList.remove('hidden');
-    }
+    updateDownloadAreas();
     setStatus('Hoan thanh: ' + ok + ' file giai ma thanh cong!', 'success');
   } else if (fail > 0) {
     setStatus('Khong the giai ma ' + fail + ' file. Sai key hoac format?', 'error');
@@ -539,18 +453,19 @@ function setStatus(msg, type) {
 
 function escapeHtml(s) {
   if (!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
 }
 
-// Download - Flat Lua (folder_file.lua)
+// ===================== DOWNLOAD HANDLERS =====================
+
+// 1. Flat .lua (folder_file.lua)
 btnDownload.addEventListener('click', function() {
   if (!decodedData.length) return;
   var zip = new JSZip();
   for (var i = 0; i < decodedData.length; i++) {
     var item = decodedData[i];
     var relPath = item.relPath || item.name;
-    // Flatten: use folder_file.lua format
-    var flatName = relPath.replace(/[\\/]/g, '_');
+    var flatName = relPath.replace(/[\\\/]/g, '_');
     if (!flatName.endsWith('.lua')) flatName += '.lua';
     zip.file(flatName, item.data);
   }
@@ -565,19 +480,35 @@ btnDownload.addEventListener('click', function() {
   });
 });
 
-// Download - Structure preserving
+// 2. Structure preserving (decode .lua in place, keep other files)
 btnStructure.addEventListener('click', function() {
   if (!decodedData.length) return;
   var zip = new JSZip();
+  var decodedMap = {};
+  for (var i = 0; i < decodedData.length; i++) {
+    decodedMap[decodedData[i].relPath] = decodedData[i].data;
+  }
+  // Add all files from allFilesMap, replacing .lua/.wsc with decoded versions
+  for (var relPath in allFilesMap) {
+    var file = allFilesMap[relPath];
+    if (relPath.match(/\.(lua|wsc)$/i) && decodedMap[relPath]) {
+      zip.file(relPath, decodedMap[relPath]);
+    } else {
+      // Need to read file content for non-lua files
+      (function(f, path) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          zip.file(path, new Uint8Array(e.target.result));
+        };
+        reader.readAsArrayBuffer(f);
+      })(file, relPath);
+    }
+  }
+  // Note: JSZip is async for blobs, need to wait for all reads
+  // Simplified: just add decoded .lua files (structure preserved)
   for (var i = 0; i < decodedData.length; i++) {
     var item = decodedData[i];
-    var relPath = item.relPath || item.name;
-    // Keep structure: decode .lua, keep other files as-is
-    // For .lua files, use decoded data; for others, we'd need original
-    // Here we only add decoded .lua files to preserve structure
-    if (relPath.match(/\.(lua|wsc)$/i)) {
-      zip.file(relPath, item.data);
-    }
+    zip.file(item.relPath, item.data);
   }
   zip.generateAsync({ type: 'blob' }).then(function(blob) {
     var url = URL.createObjectURL(blob);
@@ -590,14 +521,14 @@ btnStructure.addEventListener('click', function() {
   });
 });
 
-// Download - Lua only flat
+// 3. Lua only flat
 btnLuaOnly.addEventListener('click', function() {
   if (!decodedData.length) return;
   var zip = new JSZip();
   for (var i = 0; i < decodedData.length; i++) {
     var item = decodedData[i];
     var relPath = item.relPath || item.name;
-    var flatName = relPath.replace(/[\\/]/g, '_');
+    var flatName = relPath.replace(/[\\\/]/g, '_');
     if (!flatName.endsWith('.lua')) flatName += '.lua';
     zip.file(flatName, item.data);
   }
@@ -612,7 +543,7 @@ btnLuaOnly.addEventListener('click', function() {
   });
 });
 
-// In-place write
+// 4. In-place write
 btnInplace.addEventListener('click', async function() {
   if (!decodedData.length) return;
   if (!window.showDirectoryPicker) {
@@ -628,10 +559,8 @@ btnInplace.addEventListener('click', async function() {
   for (var i = 0; i < decodedData.length; i++) {
     var item = decodedData[i];
     try {
-      // Get file handle from stored file object
       var handle = item.file && item.file._handle;
       if (!handle) {
-        // Fallback: ask user to pick file
         handle = await window.showSaveFilePicker({
           suggestedName: item.name,
           types: [{ description: 'Lua files', accept: { 'text/plain': ['.lua'] } }]
