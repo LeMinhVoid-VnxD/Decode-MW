@@ -67,6 +67,15 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
   </div>
 
   <div class="card">
+    <div style="margin-bottom:12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#e2e8f0;cursor:pointer;">
+        <input type="checkbox" id="inplaceMode" style="width:18px;height:18px;accent-color:#3b82f6;">
+        <span><strong>Mode ghi đè file gốc</strong> (yêu cầu cấp quyền ghi file)</span>
+      </label>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;">
+        Tắt = Tải về ZIP | Bật = Ghi đè trực tiếp vào file gốc
+      </div>
+    </div>
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-icon">&#x1f4c2;</div>
       <div class="drop-zone-text">
@@ -93,6 +102,9 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
     <div class="file-list" id="fileList"></div>
     <div class="download-area hidden" id="downloadArea">
       <button class="btn btn-success" id="btnDownload" style="width:100%;">Tai xuong tat ca (ZIP)</button>
+    </div>
+    <div class="download-area hidden" id="inplaceArea">
+      <button class="btn btn-success" id="btnInplace" style="width:100%;">Ghi de vao file goc</button>
     </div>
   </div>
 
@@ -188,6 +200,7 @@ function decryptBytes(buf) {
 // ===================== UI =====================
 var allFiles = [];
 var decodedData = [];
+var originalFiles = []; // Store File objects with handles for in-place mode
 
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
@@ -202,9 +215,53 @@ var progressBar = document.getElementById('progressBar');
 var progressFill = document.getElementById('progressFill');
 var downloadArea = document.getElementById('downloadArea');
 var btnDownload = document.getElementById('btnDownload');
+var inplaceMode = document.getElementById('inplaceMode');
+var inplaceArea = document.getElementById('inplaceArea');
+var btnInplace = document.getElementById('btnInplace');
+
+// Toggle mode UI
+inplaceMode.addEventListener('change', function() {
+  if (this.checked) {
+    downloadArea.classList.add('hidden');
+    inplaceArea.classList.remove('hidden');
+    btnDownload.style.display = 'none';
+  } else {
+    downloadArea.classList.remove('hidden');
+    inplaceArea.classList.add('hidden');
+    btnDownload.style.display = '';
+  }
+});
 
 // Folder picker
-btnFolder.addEventListener('click', function() {
+btnFolder.addEventListener('click', async function() {
+  if (inplaceMode.checked && window.showDirectoryPicker) {
+    try {
+      var handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      var files = [];
+      async function traverse(dirHandle) {
+        for await (var [name, childHandle] of dirHandle.entries()) {
+          if (childHandle.kind === 'file' && name.match(/\.(lua|wsc)$/i)) {
+            var file = await childHandle.getFile();
+            file._handle = childHandle; // Store handle for writing
+            files.push(file);
+          } else if (childHandle.kind === 'directory') {
+            await traverse(childHandle);
+          }
+        }
+      }
+      await traverse(handle);
+      if (files.length) {
+        originalFiles = files.map(function(f) { return { file: f, handle: f._handle }; });
+        allFiles = files;
+        processFiles(allFiles);
+      } else {
+        setStatus('Khong tim thay file .lua nao trong folder.', 'error');
+      }
+    } catch(e) {
+      if (e.name !== 'AbortError') setStatus('Loi: ' + e.message, 'error');
+    }
+    return;
+  }
   fileInput.accept = '';
   fileInput.multiple = false;
   try { fileInput.webkitdirectory = true; } catch(e) {}
@@ -230,6 +287,20 @@ dropZone.addEventListener('dragover', function(e) { e.preventDefault(); dropZone
 dropZone.addEventListener('dragleave', function() { dropZone.classList.remove('dragover'); });
 dropZone.addEventListener('drop', function(e) {
   e.preventDefault(); dropZone.classList.remove('dragover');
+  if (e.dataTransfer.items && window.showDirectoryPicker) {
+    // Try to get directory handles for in-place mode
+    for (var i = 0; i < e.dataTransfer.items.length; i++) {
+      var item = e.dataTransfer.items[i];
+      if (item.kind === 'file') {
+        var entry = item.webkitGetAsEntry();
+        if (entry && entry.isDirectory) {
+          // Handle directory drop
+          handleDirectoryDrop(entry);
+          return;
+        }
+      }
+    }
+  }
   for (var i = 0; i < e.dataTransfer.files.length; i++) {
     var f = e.dataTransfer.files[i];
     if (f.name && f.name.match(/\.(lua|wsc)$/i)) {
@@ -239,11 +310,47 @@ dropZone.addEventListener('drop', function(e) {
   if (allFiles.length) processFiles(allFiles);
 });
 
+// Handle directory drop for in-place mode
+async function handleDirectoryDrop(entry) {
+  if (!window.showDirectoryPicker) {
+    alert('Trinh duyet khong ho tro File System Access API. Vui long dung nut "Chon Folder".');
+    return;
+  }
+  try {
+    var handle = await window.showDirectoryPicker();
+    var files = [];
+    async function traverse(dirHandle) {
+      for await (var [name, childHandle] of dirHandle.entries()) {
+        if (childHandle.kind === 'file' && name.match(/\.(lua|wsc)$/i)) {
+          var file = await childHandle.getFile();
+          // Attach handle to file object
+          file._handle = childHandle;
+          files.push(file);
+        } else if (childHandle.kind === 'directory') {
+          await traverse(childHandle);
+        }
+      }
+    }
+    await traverse(handle);
+    if (files.length) {
+      allFiles = files;
+      originalFiles = files;
+      processFiles(allFiles);
+    } else {
+      setStatus('Khong tim thay file .lua nao trong folder.', 'error');
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') setStatus('Loi: ' + e.message, 'error');
+  }
+}
+
 function processFiles(files) {
   allFiles = [];
   decodedData = [];
+  originalFiles = [];
   resultsCard.classList.add('hidden');
   downloadArea.classList.add('hidden');
+  inplaceArea.classList.add('hidden');
 
   var luaFiles = [];
   for (var i = 0; i < files.length; i++) {
@@ -256,7 +363,12 @@ function processFiles(files) {
     return;
   }
 
-  setStatus('Dang xu ly ' + luaFiles.length + ' file...', 'info');
+  var isInplace = inplaceMode.checked && window.showDirectoryPicker;
+  if (isInplace) {
+    setStatus('Dang xu ly ' + luaFiles.length + ' file (mode ghi de)...', 'info');
+  } else {
+    setStatus('Dang xu ly ' + luaFiles.length + ' file...', 'info');
+  }
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
 
@@ -292,9 +404,8 @@ function processFiles(files) {
         if (lines.length > 10) item.log += '\n... (' + (lines.length - 10) + ' dong nua)';
         ok++;
         var outName = file.name.replace(/\.(lua|wsc)$/i, '.lua');
-        decodedData.push({ name: outName, data: dec });
+        decodedData.push({ name: outName, data: dec, file: file });
       } else {
-        // Check if it's base64 but wrong key
         var textSample = new TextDecoder().decode(checkBuf).trim();
         if (/^[A-Za-z0-9+\/=]{30,}$/.test(textSample)) {
           item.status = 'fail';
@@ -349,7 +460,11 @@ function renderResults(items, ok, skip, fail) {
   }
 
   if (ok > 0) {
-    downloadArea.classList.remove('hidden');
+    if (inplaceMode.checked && window.showDirectoryPicker) {
+      inplaceArea.classList.remove('hidden');
+    } else {
+      downloadArea.classList.remove('hidden');
+    }
     setStatus('Hoan thanh: ' + ok + ' file giai ma thanh cong!', 'success');
   } else if (fail > 0) {
     setStatus('Khong the giai ma ' + fail + ' file. Sai key hoac format?', 'error');
@@ -390,6 +505,47 @@ btnDownload.addEventListener('click', function() {
     URL.revokeObjectURL(url);
     setStatus('Da tai xuong: ' + decodedData.length + ' file', 'success');
   });
+});
+
+// In-place write
+btnInplace.addEventListener('click', async function() {
+  if (!decodedData.length) return;
+  if (!window.showDirectoryPicker) {
+    alert('Trinh duyet khong ho tro File System Access API.');
+    return;
+  }
+
+  btnInplace.disabled = true;
+  btnInplace.textContent = 'Dang ghi...';
+  var okCount = 0;
+  var failCount = 0;
+
+  for (var i = 0; i < decodedData.length; i++) {
+    var item = decodedData[i];
+    try {
+      // Get file handle from stored file object
+      var handle = item.file && item.file._handle;
+      if (!handle) {
+        // Fallback: ask user to pick file
+        handle = await window.showSaveFilePicker({
+          suggestedName: item.name,
+          types: [{ description: 'Lua files', accept: { 'text/plain': ['.lua'] } }]
+        });
+      }
+
+      var writable = await handle.createWritable();
+      await writable.write(item.data);
+      await writable.close();
+      okCount++;
+    } catch(e) {
+      console.error('Write failed for ' + item.name, e);
+      failCount++;
+    }
+  }
+
+  btnInplace.disabled = false;
+  btnInplace.textContent = 'Ghi de vao file goc';
+  setStatus('Da ghi de: ' + okCount + ' thanh cong, ' + failCount + ' that bai', okCount > 0 ? 'success' : 'error');
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
