@@ -4,10 +4,10 @@ Decode XXTEA-encrypted Lua files from **Mini World** (block game).
 
 ## Key 🔑
 
-Extracted from `libMiniBaseEngine.dll` → `getXXTeaKey` function:
+Extracted from `File .dll` → `getXXTeaKey` function:
 
 ```
-b48e6ef4 4ed13eee 60614175 0e729cf4
+b4*e6e****d13eee****41**0e72***4
 ```
 
 ## Encrypted Format
