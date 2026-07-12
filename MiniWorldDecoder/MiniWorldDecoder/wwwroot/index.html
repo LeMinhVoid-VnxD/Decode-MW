@@ -76,6 +76,21 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
         Tắt = Tải về ZIP | Bật = Ghi đè trực tiếp vào file gốc
       </div>
     </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:14px;color:#e2e8f0;margin-bottom:8px;"><strong>Chế độ tải về:</strong></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;margin-bottom:4px;">
+        <input type="radio" name="downloadMode" value="flat" checked style="accent-color:#3b82f6;">
+        <span>Tải tất cả .lua (phẳng) - tên: folder_file.lua</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;margin-bottom:4px;">
+        <input type="radio" name="downloadMode" value="structure" style="accent-color:#3b82f6;">
+        <span>Giữ cấu trúc folder - decode .lua, giữ file khác</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#cbd5e1;cursor:pointer;">
+        <input type="radio" name="downloadMode" value="luaonly" style="accent-color:#3b82f6;">
+        <span>Chỉ tải .lua đã decode (phẳng, folder_file.lua)</span>
+      </label>
+    </div>
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-icon">&#x1f4c2;</div>
       <div class="drop-zone-text">
@@ -101,7 +116,13 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
     <div class="summary" id="summary"></div>
     <div class="file-list" id="fileList"></div>
     <div class="download-area hidden" id="downloadArea">
-      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tai xuong tat ca (ZIP)</button>
+      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tai xuong tat ca .lua (phang, folder_file.lua)</button>
+    </div>
+    <div class="download-area hidden" id="structureArea">
+      <button class="btn btn-success" id="btnStructure" style="width:100%;">Tai folder nén (giu cau truc, decode .lua)</button>
+    </div>
+    <div class="download-area hidden" id="luaOnlyArea">
+      <button class="btn btn-success" id="btnLuaOnly" style="width:100%;">Tai chi .lua da decode (phang)</button>
     </div>
     <div class="download-area hidden" id="inplaceArea">
       <button class="btn btn-success" id="btnInplace" style="width:100%;">Ghi de vao file goc</button>
@@ -215,22 +236,51 @@ var progressBar = document.getElementById('progressBar');
 var progressFill = document.getElementById('progressFill');
 var downloadArea = document.getElementById('downloadArea');
 var btnDownload = document.getElementById('btnDownload');
+var structureArea = document.getElementById('structureArea');
+var btnStructure = document.getElementById('btnStructure');
+var luaOnlyArea = document.getElementById('luaOnlyArea');
+var btnLuaOnly = document.getElementById('btnLuaOnly');
 var inplaceMode = document.getElementById('inplaceMode');
 var inplaceArea = document.getElementById('inplaceArea');
 var btnInplace = document.getElementById('btnInplace');
+var downloadModeRadios = document.getElementsByName('downloadMode');
 
 // Toggle mode UI
 inplaceMode.addEventListener('change', function() {
-  if (this.checked) {
-    downloadArea.classList.add('hidden');
-    inplaceArea.classList.remove('hidden');
-    btnDownload.style.display = 'none';
-  } else {
-    downloadArea.classList.remove('hidden');
-    inplaceArea.classList.add('hidden');
-    btnDownload.style.display = '';
-  }
+  updateDownloadAreas();
 });
+
+for (var i = 0; i < downloadModeRadios.length; i++) {
+  downloadModeRadios[i].addEventListener('change', updateDownloadAreas);
+});
+
+function updateDownloadAreas() {
+  if (inplaceMode.checked) {
+    downloadArea.classList.add('hidden');
+    structureArea.classList.add('hidden');
+    luaOnlyArea.classList.add('hidden');
+    inplaceArea.classList.remove('hidden');
+  } else {
+    inplaceArea.classList.add('hidden');
+    var mode = 'flat';
+    for (var i = 0; i < downloadModeRadios.length; i++) {
+      if (downloadModeRadios[i].checked) mode = downloadModeRadios[i].value;
+    }
+    if (mode === 'structure') {
+      downloadArea.classList.add('hidden');
+      structureArea.classList.remove('hidden');
+      luaOnlyArea.classList.add('hidden');
+    } else if (mode === 'luaonly') {
+      downloadArea.classList.add('hidden');
+      structureArea.classList.add('hidden');
+      luaOnlyArea.classList.remove('hidden');
+    } else {
+      downloadArea.classList.remove('hidden');
+      structureArea.classList.add('hidden');
+      luaOnlyArea.classList.add('hidden');
+    }
+  }
+}
 
 // Folder picker
 btnFolder.addEventListener('click', async function() {
@@ -403,8 +453,9 @@ function processFiles(files) {
         item.log = lines.slice(0, 10).join('\n');
         if (lines.length > 10) item.log += '\n... (' + (lines.length - 10) + ' dong nua)';
         ok++;
+        var relPath = file.webkitRelativePath || file.name;
         var outName = file.name.replace(/\.(lua|wsc)$/i, '.lua');
-        decodedData.push({ name: outName, data: dec, file: file });
+        decodedData.push({ name: outName, relPath: relPath, data: dec, file: file });
       } else {
         var textSample = new TextDecoder().decode(checkBuf).trim();
         if (/^[A-Za-z0-9+\/=]{30,}$/.test(textSample)) {
@@ -464,6 +515,8 @@ function renderResults(items, ok, skip, fail) {
       inplaceArea.classList.remove('hidden');
     } else {
       downloadArea.classList.remove('hidden');
+      structureArea.classList.remove('hidden');
+      luaOnlyArea.classList.remove('hidden');
     }
     setStatus('Hoan thanh: ' + ok + ' file giai ma thanh cong!', 'success');
   } else if (fail > 0) {
@@ -489,21 +542,73 @@ function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Download
+// Download - Flat Lua (folder_file.lua)
 btnDownload.addEventListener('click', function() {
   if (!decodedData.length) return;
   var zip = new JSZip();
   for (var i = 0; i < decodedData.length; i++) {
-    zip.file(decodedData[i].name, decodedData[i].data);
+    var item = decodedData[i];
+    var relPath = item.relPath || item.name;
+    // Flatten: use folder_file.lua format
+    var flatName = relPath.replace(/[\\/]/g, '_');
+    if (!flatName.endsWith('.lua')) flatName += '.lua';
+    zip.file(flatName, item.data);
   }
   zip.generateAsync({ type: 'blob' }).then(function(blob) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'miniworld_decoded_' + new Date().toISOString().slice(0,10) + '.zip';
+    a.download = 'miniworld_decoded_flat_' + new Date().toISOString().slice(0,10) + '.zip';
     a.click();
     URL.revokeObjectURL(url);
-    setStatus('Da tai xuong: ' + decodedData.length + ' file', 'success');
+    setStatus('Da tai xuong: ' + decodedData.length + ' file (phang)', 'success');
+  });
+});
+
+// Download - Structure preserving
+btnStructure.addEventListener('click', function() {
+  if (!decodedData.length) return;
+  var zip = new JSZip();
+  for (var i = 0; i < decodedData.length; i++) {
+    var item = decodedData[i];
+    var relPath = item.relPath || item.name;
+    // Keep structure: decode .lua, keep other files as-is
+    // For .lua files, use decoded data; for others, we'd need original
+    // Here we only add decoded .lua files to preserve structure
+    if (relPath.match(/\.(lua|wsc)$/i)) {
+      zip.file(relPath, item.data);
+    }
+  }
+  zip.generateAsync({ type: 'blob' }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'miniworld_decoded_structure_' + new Date().toISOString().slice(0,10) + '.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus('Da tai xuong giu cau truc: ' + decodedData.length + ' file .lua', 'success');
+  });
+});
+
+// Download - Lua only flat
+btnLuaOnly.addEventListener('click', function() {
+  if (!decodedData.length) return;
+  var zip = new JSZip();
+  for (var i = 0; i < decodedData.length; i++) {
+    var item = decodedData[i];
+    var relPath = item.relPath || item.name;
+    var flatName = relPath.replace(/[\\/]/g, '_');
+    if (!flatName.endsWith('.lua')) flatName += '.lua';
+    zip.file(flatName, item.data);
+  }
+  zip.generateAsync({ type: 'blob' }).then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'miniworld_luaonly_' + new Date().toISOString().slice(0,10) + '.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus('Da tai xuong chi .lua: ' + decodedData.length + ' file', 'success');
   });
 });
 
