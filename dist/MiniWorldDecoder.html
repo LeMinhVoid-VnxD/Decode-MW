@@ -56,45 +56,55 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
 #fileInput { display: none; }
 .mode-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e1; cursor: pointer; margin-bottom: 4px; }
 .mode-label input { accent-color: #3b82f6; }
+.lang-btn { background: #334155; color: #94a3b8; border: 1px solid #475569; padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+.lang-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.lang-btn:hover { background: #475569; }
+.lang-btn.active:hover { background: #2563eb; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>MiniWorld Lua Decoder</h1>
-  <p class="subtitle">Giai ma file Lua ma hoa XXTEA tu Mini World</p>
+  <p class="subtitle" data-i18n="subtitle">Giải mã file Lua mã hóa XXTEA từ Mini World</p>
 
-  <div class="card">
-    <div style="margin-bottom:8px;font-size:13px;color:#94a3b8;">XXTEA Key: <span style="color:#64748b;font-size:12px;">&#x1f512; da duoc bao ve</span></div>
-    <div class="key-display" style="opacity:0.3;user-select:none;">b48e6ef4****1d3eee****4175****9cf4</div>
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="margin-bottom:8px;font-size:13px;color:#94a3b8;" data-i18n="keyLabel">XXTEA Key: <span style="color:#64748b;font-size:12px;">&#x1f512; da duoc bao ve</span></div>
+      <div class="key-display" style="opacity:0.3;user-select:none;">b48e6ef4****1d3eee****4175****9cf4</div>
+    </div>
+    <div>
+      <button class="lang-btn active" onclick="setLang('vi')" id="langVi">VI</button>
+      <button class="lang-btn" onclick="setLang('en')" id="langEn">EN</button>
+    </div>
   </div>
 
   <div class="card">
     <div style="margin-bottom:12px;">
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:#e2e8f0;cursor:pointer;">
         <input type="checkbox" id="inplaceMode" style="width:18px;height:18px;accent-color:#3b82f6;">
-        <span><strong>Mode ghi đè file gốc</strong> (yêu cầu cấp quyền ghi file)</span>
+        <span data-i18n="inplaceLabel"><strong>Mode ghi đè file gốc</strong> (yêu cầu cấp quyền ghi file)</span>
       </label>
-      <div style="font-size:12px;color:#64748b;margin-top:4px;">
+      <div style="font-size:12px;color:#64748b;margin-top:4px;" data-i18n="inplaceDesc">
         Tắt = Tải về ZIP | Bật = Ghi đè trực tiếp vào file gốc
       </div>
     </div>
     <div style="margin-bottom:12px;">
-      <div style="font-size:14px;color:#e2e8f0;margin-bottom:8px;"><strong>Chế độ tải về:</strong></div>
-      <label class="mode-label"><input type="radio" name="downloadMode" value="flat" checked> <span>Tải tất cả .lua (phẳng) - tên: folder_file.lua</span></label>
-      <label class="mode-label"><input type="radio" name="downloadMode" value="structure"> <span>Giữ cấu trúc folder - decode .lua, giữ file khác</span></label>
-      <label class="mode-label"><input type="radio" name="downloadMode" value="luaonly"> <span>Chỉ tải .lua đã decode (phẳng, folder_file.lua)</span></label>
+      <div style="font-size:14px;color:#e2e8f0;margin-bottom:8px;" data-i18n="modeHeader"><strong>Chế độ tải về:</strong></div>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="flat" checked> <span data-i18n="modeFlat">Tải tất cả .lua (phẳng) - tên: folder_file.lua</span></label>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="structure"> <span data-i18n="modeStructure">Giữ cấu trúc folder - decode .lua, giữ file khác</span></label>
+      <label class="mode-label"><input type="radio" name="downloadMode" value="luaonly"> <span data-i18n="modeLuaOnly">Chỉ tải .lua đã decode (phẳng, folder_file.lua)</span></label>
     </div>
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-icon">&#x1f4c2;</div>
       <div class="drop-zone-text">
-        <strong>Kéo thả file hoặc folder vào đây</strong><br>
-        Hoặc bấm nút bên dưới
+        <strong data-i18n="dropText" style="color:#60a5fa;">Kéo thả file hoặc folder vào đây</strong><br>
+        <span data-i18n="dropSub">Hoặc bấm nút bên dưới</span>
       </div>
     </div>
     <input type="file" id="fileInput">
     <div style="margin-top:12px;" class="row">
-      <button class="btn btn-primary" id="btnFolder">Chọn Folder</button>
-      <button class="btn btn-primary" id="btnFiles">Chọn File(s)</button>
+      <button class="btn btn-primary" id="btnFolder" data-i18n="btnFolder">Chọn Folder</button>
+      <button class="btn btn-primary" id="btnFiles" data-i18n="btnFiles">Chọn File(s)</button>
     </div>
   </div>
 
@@ -103,22 +113,22 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
 
   <div class="card hidden" id="resultsCard">
     <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <strong>Kết quả</strong>
+      <strong data-i18n="results">Kết quả</strong>
       <span id="fileCount" style="color:#94a3b8;font-size:13px;"></span>
     </div>
     <div class="summary" id="summary"></div>
     <div class="file-list" id="fileList"></div>
     <div class="download-area hidden" id="downloadArea">
-      <button class="btn btn-success" id="btnDownload" style="width:100%;">Tải xuống tất cả .lua (phẳng, folder_file.lua)</button>
+      <button class="btn btn-success" id="btnDownload" style="width:100%;" data-i18n="btnDownload">Tải xuống tất cả .lua (phẳng, folder_file.lua)</button>
     </div>
     <div class="download-area hidden" id="structureArea">
-      <button class="btn btn-success" id="btnStructure" style="width:100%;">Tải về giữ cấu trúc folder (ZIP)</button>
+      <button class="btn btn-success" id="btnStructure" style="width:100%;" data-i18n="btnStructure">Tải về giữ cấu trúc folder (ZIP)</button>
     </div>
     <div class="download-area hidden" id="luaOnlyArea">
-      <button class="btn btn-success" id="btnLuaOnly" style="width:100%;">Tải chỉ .lua đã decode (phẳng)</button>
+      <button class="btn btn-success" id="btnLuaOnly" style="width:100%;" data-i18n="btnLuaOnly">Tải chỉ .lua đã decode (phẳng)</button>
     </div>
     <div class="download-area hidden" id="inplaceArea">
-      <button class="btn btn-success" id="btnInplace" style="width:100%;">Ghi đè vào file gốc</button>
+      <button class="btn btn-success" id="btnInplace" style="width:100%;" data-i18n="btnInplace">Ghi đè vào file gốc</button>
     </div>
   </div>
 
@@ -128,8 +138,137 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; background: linear-g
 </div>
 
 <script>
+// ===================== I18N =====================
+var LANG = {};
+
+LANG.vi = {
+  subtitle: 'Giải mã file Lua mã hóa XXTEA từ Mini World',
+  inplaceLabel: '<strong>Mode ghi đè file gốc</strong> (yêu cầu cấp quyền ghi file)',
+  inplaceDesc: 'Tắt = Tải về ZIP | Bật = Ghi đè trực tiếp vào file gốc',
+  modeHeader: 'Chế độ tải về:',
+  modeFlat: 'Tải tất cả .lua (phẳng) - tên: folder_file.lua',
+  modeStructure: 'Giữ cấu trúc folder - decode .lua, giữ file khác',
+  modeLuaOnly: 'Chỉ tải .lua đã decode (phẳng, folder_file.lua)',
+  dropText: 'Kéo thả file hoặc folder vào đây',
+  dropSub: 'Hoặc bấm nút bên dưới',
+  btnFolder: 'Chọn Folder',
+  btnFiles: 'Chọn File(s)',
+  results: 'Kết quả',
+  btnDownload: 'Tải xuống tất cả .lua (phẳng, folder_file.lua)',
+  btnStructure: 'Tải về giữ cấu trúc folder (ZIP)',
+  btnLuaOnly: 'Tải chỉ .lua đã decode (phẳng)',
+  btnInplace: 'Ghi đè vào file gốc',
+  noFiles: 'Không tìm thấy file .lua nào. Vui lòng chọn file có đuôi .lua',
+  processing: 'Đang xử lý {n} file...',
+  processingInplace: 'Đang xử lý {n} file (mode ghi đè)...',
+  decoded: 'Giải mã',
+  skipped: 'Bỏ qua',
+  failed: 'Lỗi',
+  badgeSkip: 'Bỏ qua',
+  badgeFail: 'Lỗi',
+  notEncrypted: 'Không phải file mã hóa',
+  decryptFailed: 'Giải mã thất bại (có thể sai key)',
+  moreLines: '... ({n} dòng nữa)',
+  success: 'Hoàn thành: {n} file giải mã thành công!',
+  errorKey: 'Không thể giải mã {n} file. Sai key hoặc format?',
+  noEncrypted: 'Không có file nào cần giải mã.',
+  downloaded: 'Đã tải xuống: {n} file (phẳng)',
+  downloadedStructure: 'Đã tải xuống giữ cấu trúc: {n} file .lua',
+  downloadedLua: 'Đã tải xuống chỉ .lua: {n} file',
+  overwriteResult: 'Đã ghi đè: {ok} thành công, {fail} thất bại',
+  alertFSA: 'Trình duyệt không hỗ trợ File System Access API.',
+  overwriting: 'Đang ghi...',
+  overwriteDone: 'Ghi đè vào file gốc',
+  writeFailed: 'Ghi thất bại cho {name}',
+  sizeKb: '{n}KB',
+  sizeB: '{n}B',
+};
+
+LANG.en = {
+  subtitle: 'Decode XXTEA-encrypted Lua files from Mini World',
+  inplaceLabel: '<strong>In-place overwrite mode</strong> (requires file write permission)',
+  inplaceDesc: 'Off = Download ZIP | On = Overwrite original files',
+  modeHeader: 'Download mode:',
+  modeFlat: 'Download all .lua (flat) - name: folder_file.lua',
+  modeStructure: 'Keep folder structure - decode .lua, keep other files',
+  modeLuaOnly: 'Only decoded .lua (flat, folder_file.lua)',
+  dropText: 'Drag & drop files or folders here',
+  dropSub: 'Or click the button below',
+  btnFolder: 'Choose Folder',
+  btnFiles: 'Choose File(s)',
+  results: 'Results',
+  btnDownload: 'Download all .lua (flat, folder_file.lua)',
+  btnStructure: 'Download with folder structure (ZIP)',
+  btnLuaOnly: 'Download decoded .lua only (flat)',
+  btnInplace: 'Overwrite original files',
+  noFiles: 'No .lua files found. Please select files with .lua extension',
+  processing: 'Processing {n} files...',
+  processingInplace: 'Processing {n} files (overwrite mode)...',
+  decoded: 'Decoded',
+  skipped: 'Skipped',
+  failed: 'Failed',
+  badgeSkip: 'Skipped',
+  badgeFail: 'Failed',
+  notEncrypted: 'Not an encrypted file',
+  decryptFailed: 'Decryption failed (wrong key?)',
+  moreLines: '... ({n} more lines)',
+  success: 'Completed: {n} files decoded successfully!',
+  errorKey: 'Cannot decode {n} files. Wrong key or format?',
+  noEncrypted: 'No files need decoding.',
+  downloaded: 'Downloaded: {n} files (flat)',
+  downloadedStructure: 'Downloaded with structure: {n} .lua files',
+  downloadedLua: 'Downloaded .lua only: {n} files',
+  overwriteResult: 'Overwritten: {ok} success, {fail} failed',
+  alertFSA: 'Browser does not support File System Access API.',
+  overwriting: 'Writing...',
+  overwriteDone: 'Overwrite original files',
+  writeFailed: 'Write failed for {name}',
+  sizeKb: '{n}KB',
+  sizeB: '{n}B',
+};
+
+var currentLang = localStorage.getItem('mwdecoder_lang') || 'vi';
+
+function __(key, vars) {
+  var text = LANG[currentLang] && LANG[currentLang][key];
+  if (!text) text = LANG.vi[key] || key;
+  if (vars) {
+    for (var k in vars) {
+      text = text.replace('{' + k + '}', vars[k]);
+    }
+  }
+  return text;
+}
+
+function format(str, vars) {
+  for (var k in vars) {
+    str = str.replace('{' + k + '}', vars[k]);
+  }
+  return str;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('mwdecoder_lang', lang);
+  document.getElementById('langVi').className = 'lang-btn' + (lang === 'vi' ? ' active' : '');
+  document.getElementById('langEn').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
+  applyLang();
+}
+
+function applyLang() {
+  var els = document.querySelectorAll('[data-i18n]');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    var key = el.getAttribute('data-i18n');
+    var text = __(key);
+    if (text) el.innerHTML = text;
+  }
+}
+
+// Apply saved language on load
+setLang(currentLang);
+
 // ===================== XXTEA =====================
-// Key: hex -> ASCII bytes -> XOR mask -> stored
 (function() {
   var masked = new Uint8Array([0xb7,0x31,0xa0,0xd9,0x55,0xef,0xb9,0x66,0x8b,0x5a,0xb9,0xb4,0x6a,0x3a,0xd0,0x4b,0xe5,0x65,0x7d,0x58,0x13,0x50,0x99,0x91,0x3c,0x8f,0x9a,0x3f,0xed,0x62,0x65,0x67]);
   var mask  = new Uint8Array([0xd5,0x05,0x98,0xbc,0x63,0x8a,0xdf,0x52,0xbf,0x3f,0xdd,0x85,0x59,0x5f,0xb5,0x2e,0xd3,0x55,0x4b,0x69,0x27,0x61,0xae,0xa4,0x0c,0xea,0xad,0x0d,0xd4,0x01,0x03,0x53]);
@@ -183,27 +322,21 @@ function decryptBytes(buf) {
   try {
     var raw;
     var text = new TextDecoder().decode(buf);
-
-    // Format 1: a0817i + base64
     if (isEncrypted(buf)) {
       var b64 = text.slice(6).trim();
       var bin = atob(b64);
       raw = new Uint8Array(bin.length);
       for (var i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
-    }
-    // Format 2: pure base64
-    else {
+    } else {
       var trimmed = text.trim();
       if (!isBase64(trimmed)) return null;
       var bin = atob(trimmed);
       raw = new Uint8Array(bin.length);
       for (var i = 0; i < bin.length; i++) raw[i] = bin.charCodeAt(i);
     }
-
     var dec = xxteaDecrypt(raw);
     if (!dec) return null;
     var result = new TextDecoder().decode(dec);
-    // Verify it looks like Lua
     if (result.length > 10 && (result.indexOf('--') === 0 || result.indexOf('local') >= 0 || result.indexOf('function') >= 0)) {
       return result;
     }
@@ -212,10 +345,10 @@ function decryptBytes(buf) {
 }
 
 // ===================== UI =====================
-var allFiles = [];           // All File objects from selection
-var allFilesMap = {};        // relPath -> File (for structure mode)
-var decodedData = [];        // {relPath, name, data, file}
-var originalFiles = [];      // For in-place mode with handles
+var allFiles = [];
+var allFilesMap = {};
+var decodedData = [];
+var originalFiles = [];
 
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
@@ -329,15 +462,15 @@ function processFiles(files) {
   }
 
   if (!luaFiles.length) {
-    setStatus('Khong tim thay file .lua nao. Vui long chon file co duoi .lua', 'error');
+    setStatus(__('noFiles'), 'error');
     return;
   }
 
   var isInplace = inplaceMode.checked && window.showDirectoryPicker;
   if (isInplace) {
-    setStatus('Dang xu ly ' + luaFiles.length + ' file (mode ghi de)...', 'info');
+    setStatus( __('processingInplace', {n: luaFiles.length}), 'info');
   } else {
-    setStatus('Dang xu ly ' + luaFiles.length + ' file...', 'info');
+    setStatus( __('processing', {n: luaFiles.length}), 'info');
   }
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
@@ -372,7 +505,7 @@ function processFiles(files) {
         item.decSize = dec.length;
         var lines = dec.split('\n');
         item.log = lines.slice(0, 10).join('\n');
-        if (lines.length > 10) item.log += '\n... (' + (lines.length - 10) + ' dong nua)';
+        if (lines.length > 10) item.log += __('moreLines', {n: lines.length - 10});
         ok++;
         var outName = file.name.replace(/\.(lua|wsc)$/i, '.lua');
         decodedData.push({ name: outName, relPath: relPath, data: dec, file: file });
@@ -401,15 +534,15 @@ function renderResults(items, ok, skip, fail) {
   fileCount.textContent = items.length + ' file';
 
   summary.innerHTML =
-    '<div class="summary-item"><div class="num" style="color:#86efac;">' + ok + '</div><div class="label">Giai ma</div></div>' +
-    '<div class="summary-item"><div class="num" style="color:#94a3b8;">' + skip + '</div><div class="label">Bo qua</div></div>' +
-    '<div class="summary-item"><div class="num" style="color:#fca5a5;">' + fail + '</div><div class="label">Loi</div></div>';
+    '<div class="summary-item"><div class="num" style="color:#86efac;">' + ok + '</div><div class="label">' + __('decoded') + '</div></div>' +
+    '<div class="summary-item"><div class="num" style="color:#94a3b8;">' + skip + '</div><div class="label">' + __('skipped') + '</div></div>' +
+    '<div class="summary-item"><div class="num" style="color:#fca5a5;">' + fail + '</div><div class="label">' + __('failed') + '</div></div>';
 
   fileList.innerHTML = '';
   for (var i = 0; i < items.length; i++) {
     var item = items[i];
     var badgeClass = item.status === 'ok' ? 'badge-ok' : item.status === 'skip' ? 'badge-skip' : 'badge-fail';
-    var badgeText = item.status === 'ok' ? 'OK' : item.status === 'skip' ? 'Bo qua' : 'Loi';
+    var badgeText = item.status === 'ok' ? 'OK' : item.status === 'skip' ? __('badgeSkip') : __('badgeFail');
     var meta = item.status === 'ok' ? item.decSize + 'B' : (item.size/1024).toFixed(1) + 'KB';
 
     var div = document.createElement('div');
@@ -425,18 +558,18 @@ function renderResults(items, ok, skip, fail) {
         (item.status === 'ok'
           ? '<div style="color:#94a3b8;font-size:11px;padding:2px 0 4px;word-break:break-all;border-bottom:1px solid #334155;margin-bottom:6px;">' + escapeHtml(item.name) + '</div><pre>' + escapeHtml(item.log) + '</pre>'
           : '<pre style="color:#64748b;font-style:italic;">' +
-            (item.status === 'skip' ? 'Khong phai file ma hoa<br><code>' + item.rawStart + '</code>' : 'Giai ma that bai (co the sai key)<br><code>' + item.rawStart + '</code>') + '</pre>') +
+            (item.status === 'skip' ? __('notEncrypted') + '<br><code>' + item.rawStart + '</code>' : __('decryptFailed') + '<br><code>' + item.rawStart + '</code>') + '</pre>') +
       '</div>';
     fileList.appendChild(div);
   }
 
   if (ok > 0) {
     updateDownloadAreas();
-    setStatus('Hoan thanh: ' + ok + ' file giai ma thanh cong!', 'success');
+    setStatus( __('success', {n: ok}), 'success');
   } else if (fail > 0) {
-    setStatus('Khong the giai ma ' + fail + ' file. Sai key hoac format?', 'error');
+    setStatus( __('errorKey', {n: fail}), 'error');
   } else {
-    setStatus('Khong co file nao can giai ma.', 'info');
+    setStatus(__('noEncrypted'), 'info');
   }
 }
 
@@ -453,7 +586,7 @@ function setStatus(msg, type) {
 
 function escapeHtml(s) {
   if (!s) return '';
-  return s.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ===================== DOWNLOAD HANDLERS =====================
@@ -476,11 +609,11 @@ btnDownload.addEventListener('click', function() {
     a.download = 'miniworld_decoded_flat_' + new Date().toISOString().slice(0,10) + '.zip';
     a.click();
     URL.revokeObjectURL(url);
-    setStatus('Da tai xuong: ' + decodedData.length + ' file (phang)', 'success');
+    setStatus( __('downloaded', {n: decodedData.length}), 'success');
   });
 });
 
-// 2. Structure preserving (decode .lua in place, keep other files)
+// Download - Structure preserving
 btnStructure.addEventListener('click', function() {
   if (!decodedData.length) return;
   var zip = new JSZip();
@@ -488,13 +621,11 @@ btnStructure.addEventListener('click', function() {
   for (var i = 0; i < decodedData.length; i++) {
     decodedMap[decodedData[i].relPath] = decodedData[i].data;
   }
-  // Add all files from allFilesMap, replacing .lua/.wsc with decoded versions
   for (var relPath in allFilesMap) {
     var file = allFilesMap[relPath];
     if (relPath.match(/\.(lua|wsc)$/i) && decodedMap[relPath]) {
       zip.file(relPath, decodedMap[relPath]);
     } else {
-      // Need to read file content for non-lua files
       (function(f, path) {
         var reader = new FileReader();
         reader.onload = function(e) {
@@ -504,8 +635,6 @@ btnStructure.addEventListener('click', function() {
       })(file, relPath);
     }
   }
-  // Note: JSZip is async for blobs, need to wait for all reads
-  // Simplified: just add decoded .lua files (structure preserved)
   for (var i = 0; i < decodedData.length; i++) {
     var item = decodedData[i];
     zip.file(item.relPath, item.data);
@@ -517,7 +646,7 @@ btnStructure.addEventListener('click', function() {
     a.download = 'miniworld_decoded_structure_' + new Date().toISOString().slice(0,10) + '.zip';
     a.click();
     URL.revokeObjectURL(url);
-    setStatus('Da tai xuong giu cau truc: ' + decodedData.length + ' file .lua', 'success');
+    setStatus( __('downloadedStructure', {n: decodedData.length}), 'success');
   });
 });
 
@@ -539,7 +668,7 @@ btnLuaOnly.addEventListener('click', function() {
     a.download = 'miniworld_luaonly_' + new Date().toISOString().slice(0,10) + '.zip';
     a.click();
     URL.revokeObjectURL(url);
-    setStatus('Da tai xuong chi .lua: ' + decodedData.length + ' file', 'success');
+    setStatus( __('downloadedLua', {n: decodedData.length}), 'success');
   });
 });
 
@@ -547,12 +676,12 @@ btnLuaOnly.addEventListener('click', function() {
 btnInplace.addEventListener('click', async function() {
   if (!decodedData.length) return;
   if (!window.showDirectoryPicker) {
-    alert('Trinh duyet khong ho tro File System Access API.');
+    alert( __('alertFSA') );
     return;
   }
 
   btnInplace.disabled = true;
-  btnInplace.textContent = 'Dang ghi...';
+  btnInplace.textContent = __('overwriting');
   var okCount = 0;
   var failCount = 0;
 
@@ -572,14 +701,14 @@ btnInplace.addEventListener('click', async function() {
       await writable.close();
       okCount++;
     } catch(e) {
-      console.error('Write failed for ' + item.name, e);
+      console.error( __('writeFailed', {name: item.name}), e);
       failCount++;
     }
   }
 
   btnInplace.disabled = false;
-  btnInplace.textContent = 'Ghi de vao file goc';
-  setStatus('Da ghi de: ' + okCount + ' thanh cong, ' + failCount + ' that bai', okCount > 0 ? 'success' : 'error');
+  btnInplace.textContent = __('overwriteDone');
+  setStatus( __('overwriteResult', {ok: okCount, fail: failCount}), okCount > 0 ? 'success' : 'error');
 });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
